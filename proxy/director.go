@@ -13,6 +13,12 @@ import (
 // The presence of the `Context` allows for rich filtering, e.g. based on Metadata (headers).
 // If no handling is meant to be done, a `codes.NotImplemented` gRPC error should be returned.
 //
+// downstreamContext is the context of the client side. downstreamCtx is the context
+// of upstream proxy. upstreamCtx also lives throughout the lifetime of proxying. In cases
+// where clients cancel the connection, upstreamCtx will be canceled but upstreamCtx will continue
+// until all proxying is done. In case of streaming server gRPC, this means when the service
+// call actually terminates.
+//
 // The context returned from this function should be the context for the *outgoing* (to backend) call. In case you want
 // to forward any Metadata between the inbound request and outbound requests, you should do it manually. However, you
 // *must* propagate the cancel function (`context.WithCancel`) of the inbound context to the one returned.
@@ -21,4 +27,4 @@ import (
 // are invoked. So decisions around authorization, monitoring etc. are better to be handled there.
 //
 // See the rather rich example.
-type StreamDirector func(ctx context.Context, fullMethodName string) (context.Context, *grpc.ClientConn, error)
+type StreamDirector func(downstreamCtx, upstreamCtx context.Context, fullMethodName string) (context.Context, *grpc.ClientConn, error)
