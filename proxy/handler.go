@@ -64,7 +64,13 @@ func (s *handler) handler(srv interface{}, serverStream grpc.ServerStream) error
 		return grpc.Errorf(codes.Internal, "lowLevelServerStream not exists in context")
 	}
 	// We require that the director's returned context inherits from the serverStream.Context().
-	outgoingCtx, backendConn, err := s.director(serverStream.Context(), fullMethodName)
+	downstreamCtx := serverStream.Context()
+	// Create a new upstream context. For now do not set expiry.
+	upstreamCtx, upstreamCancel := context.WithCancel(context.Background())
+	// this will be called when request proxying is done
+	defer upstreamCancel()
+
+	outgoingCtx, backendConn, err := s.director(downstreamCtx, upstreamCtx, fullMethodName)
 	if err != nil {
 		return err
 	}

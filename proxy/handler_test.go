@@ -238,15 +238,15 @@ func (s *ProxyHappySuite) SetupSuite() {
 	// Setup of the proxy's Director.
 	s.serverClientConn, err = grpc.Dial(s.serverListener.Addr().String(), grpc.WithInsecure(), grpc.WithCodec(proxy.Codec()))
 	require.NoError(s.T(), err, "must not error on deferred client Dial")
-	director := func(ctx context.Context, fullName string) (context.Context, *grpc.ClientConn, error) {
-		md, ok := metadata.FromIncomingContext(ctx)
+	director := func(downstreamCtx, upstreamCtx context.Context, fullName string) (context.Context, *grpc.ClientConn, error) {
+		md, ok := metadata.FromIncomingContext(downstreamCtx)
 		if ok {
 			if _, exists := md[rejectingMdKey]; exists {
-				return ctx, nil, grpc.Errorf(codes.PermissionDenied, "testing rejection")
+				return nil, nil, grpc.Errorf(codes.PermissionDenied, "testing rejection")
 			}
 		}
 		// Explicitly copy the metadata, otherwise the tests will fail.
-		outCtx, _ := context.WithCancel(ctx)
+		outCtx, _ := context.WithCancel(downstreamCtx)
 		outCtx = metadata.NewOutgoingContext(outCtx, md.Copy())
 		return outCtx, s.serverClientConn, nil
 	}
